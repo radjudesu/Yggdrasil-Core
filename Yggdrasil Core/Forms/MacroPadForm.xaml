@@ -1,0 +1,71 @@
+﻿<UserControl x:Class="Yggdrasil_Core.Forms.MacroPadForm"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:hc="https://handyorg.github.io/handycontrol"
+             xmlns:local="clr-namespace:Yggdrasil_Core.Forms"
+             xmlns:models="clr-namespace:Yggdrasil_Core.Models"
+             xmlns:utils="clr-namespace:Yggdrasil_Core.Utils"
+             mc:Ignorable="d"
+             d:DesignHeight="450" d:DesignWidth="800" Foreground="{x:Null}" Background="#FF0A0A0A">
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="SecondaryBrush" Color="#202020" />
+        <SolidColorBrush x:Key="BorderBrush" Color="#333333" />
+    </UserControl.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Border Grid.Column="0" Background="{StaticResource SecondaryBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="0,0,5,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="Macros" FontWeight="Bold" Margin="5" Foreground="White" />
+                <TreeView Grid.Row="1" ItemsSource="{Binding Folders}"
+                          utils:TreeViewExtensions.SelectedItem="{Binding SelectedTreeItem}"
+                          Margin="5" FontSize="10">
+                    <TreeView.Resources>
+                        <HierarchicalDataTemplate DataType="{x:Type models:MacroFolder}" ItemsSource="{Binding Macros}">
+                            <TextBlock Text="{Binding Name}" Foreground="Black"/>
+                        </HierarchicalDataTemplate>
+                        <DataTemplate DataType="{x:Type models:Macro}">
+                            <TextBlock Text="{Binding Name}" Foreground="Black"/>
+                        </DataTemplate>
+                    </TreeView.Resources>
+                </TreeView>
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="5">
+                    <Button Content="New Folder" Command="{Binding CreateFolderCommand}" Margin="0,0,5,0" />
+                    <Button Content="Create" Command="{Binding CreateMacroCommand}" Margin="0,0,5,0" />
+                    <Button Content="Edit" Command="{Binding EditMacroCommand}" Margin="0,0,5,0" />
+                    <Button Content="Delete" Command="{Binding DeleteCommand}" Margin="0,0,5,0" />
+                    <Button Content="Import" Command="{Binding ImportMacroCommand}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+        <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="5,0,0,320">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="Profiles" FontWeight="Bold" Margin="5" Foreground="White" />
+                <hc:ComboBox Grid.Row="1" ItemsSource="{Binding ProfileNames}"
+                             SelectedItem="{Binding SelectedProfile}"
+                             IsEditable="True"
+                             Margin="5" />
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="5">
+                    <Button Content="Load" Command="{Binding LoadProfileCommand}" Margin="0,0,5,0" />
+                    <Button Content="Save" Command="{Binding SaveProfileCommand}" Margin="0,0,5,0" />
+                    <Button Content="Delete" Command="{Binding DeleteProfileCommand}" Margin="0,0,5,0" />
+                    <Button Content="Import" Command="{Binding ImportProfileCommand}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
