@@ -15,8 +15,8 @@
     </UserControl.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="67*" />
-            <ColumnDefinition Width="42*" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Border Grid.Column="0" Background="{StaticResource SecondaryBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="0,0,4,140">
             <Grid>
@@ -39,15 +39,28 @@
                     </TreeView.Resources>
                 </TreeView>
                 <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="5">
-                    <Button Content="New Folder" Command="{Binding CreateFolderCommand}" Margin="0,0,5,0" />
-                    <Button Content="Create" Command="{Binding CreateMacroCommand}" Margin="0,0,5,0" />
-                    <Button Content="Edit" Command="{Binding EditMacroCommand}" Margin="0,0,5,0" />
-                    <Button Content="Delete" Command="{Binding DeleteCommand}" Margin="0,0,5,0" />
-                    <Button Content="Import" Command="{Binding ImportMacroCommand}" />
+                    <Button Command="{Binding CreateFolderCommand}" Margin="0,0,5,0" ToolTip="New Folder" Padding="0" Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}">
+                        <Image Source="/Resources/Icons/new-folder.png" Stretch="Uniform" />
+                    </Button>
+                    <Button Command="{Binding CreateMacroCommand}" Margin="0,0,5,0" ToolTip="Create" Padding="0" Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}">
+                        <Image Source="/Resources/Icons/add-button.png" Stretch="Uniform" />
+                    </Button>
+                    <Button Command="{Binding EditMacroCommand}" Margin="0,0,5,0" ToolTip="Edit" Padding="0" Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}">
+                        <Image Source="/Resources/Icons/pencil.png" Stretch="Uniform" />
+                    </Button>
+                    <Button Command="{Binding DeleteCommand}" Margin="0,0,5,0" ToolTip="Delete" Padding="0" Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}">
+                        <Image Source="/Resources/Icons/delete.png" Stretch="Uniform" />
+                    </Button>
+                    <Button Command="{Binding ImportMacroCommand}" ToolTip="Import" Padding="0" Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}">
+                        <Image Source="/Resources/Icons/download.png" Stretch="Uniform" />
+                    </Button>
+                    <Button Command="{Binding ExportMacroCommand}" ToolTip="Import" Padding="0" Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}">
+                        <Image Source="/Resources/Icons/upload.png" Stretch="Uniform" />
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>
-        <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="5,0,0,140">
+        <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="5,0,0,320">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
