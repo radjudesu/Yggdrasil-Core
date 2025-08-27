@@ -27,7 +27,7 @@
                 </Grid.RowDefinitions>
                 <TextBlock Grid.Row="0" Text="Macros" FontWeight="Bold" Margin="5" Foreground="White" />
                 <TreeView Grid.Row="1" ItemsSource="{Binding Folders}"
-                          utils:TreeViewExtensions.SelectedItem="{Binding SelectedTreeItem}"
+                          utils:TreeViewExtensions.SelectedItem="{Binding SelectedTreeItem, Mode=TwoWay}"
                           Margin="5" FontSize="10">
                     <TreeView.Resources>
                         <HierarchicalDataTemplate DataType="{x:Type models:MacroFolder}" ItemsSource="{Binding Macros}">
