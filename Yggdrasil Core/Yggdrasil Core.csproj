@@ -73,4 +73,9 @@
     <Resource Include="Resources\Icons\website.png" />
   </ItemGroup>
 
+	<ItemGroup>
+		<!-- Add to .csproj in <ItemGroup> -->
+		<EmbeddedResource Include="Resources\CustomScript.xshd" />
+	</ItemGroup>
+
 </Project>

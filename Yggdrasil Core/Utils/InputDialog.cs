@@ -7,7 +7,7 @@ namespace Yggdrasil_Core.Utils
     {
         public string Input { get; private set; }
 
-        public InputDialog(string title, string prompt)
+        public InputDialog(string title, string prompt, string defaultText = "")
         {
             Title = title;
             Width = 300;
@@ -18,7 +18,7 @@ namespace Yggdrasil_Core.Utils
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             var lbl = new TextBlock { Text = prompt, Margin = new Thickness(10) };
             Grid.SetRow(lbl, 0);
-            var tb = new TextBox { Margin = new Thickness(10) };
+            var tb = new TextBox { Margin = new Thickness(10), Text = defaultText };
             Grid.SetRow(tb, 1);
             var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(10) };
             Grid.SetRow(btnPanel, 2);
@@ -34,9 +34,9 @@ namespace Yggdrasil_Core.Utils
             Content = grid;
         }
 
-        public static string Show(string title, string prompt)
+        public static string Show(string title, string prompt, string defaultText = "")
         {
-            var dlg = new InputDialog(title, prompt);
+            var dlg = new InputDialog(title, prompt, defaultText);
             if (dlg.ShowDialog() == true)
                 return dlg.Input;
             return null;

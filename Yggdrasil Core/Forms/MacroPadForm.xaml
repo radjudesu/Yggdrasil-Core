@@ -8,21 +8,22 @@
              xmlns:models="clr-namespace:Yggdrasil_Core.Models"
              xmlns:utils="clr-namespace:Yggdrasil_Core.Utils"
              mc:Ignorable="d"
-             d:DesignHeight="430" d:DesignWidth="545" Foreground="{x:Null}" Background="#FF0A0A0A">
+             d:DesignHeight="454" d:DesignWidth="545" Foreground="{x:Null}" Background="#FF0A0A0A">
     <UserControl.Resources>
         <SolidColorBrush x:Key="SecondaryBrush" Color="#202020" />
         <SolidColorBrush x:Key="BorderBrush" Color="#333333" />
     </UserControl.Resources>
-    <Grid Margin="0,0,0,20">
+    <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <Border Grid.Column="0" Background="{StaticResource SecondaryBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="0,0,4,10">
+        <Border Grid.Column="0" Background="{StaticResource SecondaryBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="0,0,4,140">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <TextBlock Grid.Row="0" Text="Macros" FontWeight="Bold" Margin="5" Foreground="White" />
@@ -31,36 +32,34 @@
                           Margin="5" FontSize="10">
                     <TreeView.Resources>
                         <HierarchicalDataTemplate DataType="{x:Type models:MacroFolder}" ItemsSource="{Binding Macros}">
-                            <TextBlock Text="{Binding Name}" Foreground="Black"/>
+                            <TextBlock Text="{Binding Name}" Foreground="White"/>
                         </HierarchicalDataTemplate>
                         <DataTemplate DataType="{x:Type models:Macro}">
-                            <TextBlock Text="{Binding Name}" Foreground="Black"/>
+                            <TextBlock Text="{Binding Name}" Foreground="White"/>
                         </DataTemplate>
                     </TreeView.Resources>
                 </TreeView>
-                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="5" Height="23">
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="5">
                     <Button Command="{Binding CreateFolderCommand}" Margin="0,0,5,0" ToolTip="New Folder" Padding="0" Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}">
-                        <Image Source="/Resources/Icons/new-folder.png" Stretch="Uniform" Cursor="Hand" />
+                        <Image Source="/Resources/Icons/new-folder.png" Stretch="Uniform" />
                     </Button>
                     <Button Command="{Binding CreateMacroCommand}" Margin="0,0,5,0" ToolTip="Create" Padding="0" Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}">
-                        <Image Source="/Resources/Icons/add-button.png" Stretch="Uniform" Cursor="Hand" />
+                        <Image Source="/Resources/Icons/add-button.png" Stretch="Uniform" />
                     </Button>
                     <Button Command="{Binding EditMacroCommand}" Margin="0,0,5,0" ToolTip="Edit" Padding="0" Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}">
-                        <Image Source="/Resources/Icons/note.png" Stretch="Uniform" Cursor="Hand" />
+                        <Image Source="/Resources/Icons/note.png" Stretch="Uniform" />
                     </Button>
                     <Button Command="{Binding DeleteCommand}" Margin="0,0,5,0" ToolTip="Delete" Padding="0" Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}">
-                        <Image Source="/Resources/Icons/delete.png" Stretch="Uniform" Cursor="Hand" />
+                        <Image Source="/Resources/Icons/delete.png" Stretch="Uniform" />
                     </Button>
                     <Button Command="{Binding ImportMacroCommand}" ToolTip="Import" Padding="0" Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}">
-                        <Image Source="/Resources/Icons/download.png" Stretch="Uniform" Cursor="Hand" />
-                    </Button>
-                    <Button Command="{Binding ExportMacroCommand}" ToolTip="Import" Padding="0" Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}">
-                        <Image Source="/Resources/Icons/upload.png" Stretch="Uniform" Cursor="Hand" />
+                        <Image Source="/Resources/Icons/import.png" Stretch="Uniform" />
                     </Button>
                 </StackPanel>
+                <Button Grid.Row="3" Content="Open ScriptPad Editor" Command="{Binding OpenScriptPadCommand}" Margin="5" HorizontalAlignment="Stretch" Background="#FF007ACC" BorderBrush="{x:Null}" Foreground="White" />
             </Grid>
         </Border>
-        <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="6,0,0,310">
+        <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="5,0,0,320">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />

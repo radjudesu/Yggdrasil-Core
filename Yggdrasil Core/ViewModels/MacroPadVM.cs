@@ -1,9 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
-using System.Windows;
 using System.Windows.Input;
-using System.Windows.Threading;
 using Yggdrasil_Core.Models;
 using Yggdrasil_Core.Utils;
 
@@ -15,8 +13,8 @@ namespace Yggdrasil_Core.ViewModels
         private object selectedTreeItem;
         private MacroFolder selectedFolder;
         private Macro selectedMacro;
-        private ObservableCollection<string> profileNames = new ObservableCollection<string>();
-        private string selectedProfile;
+        private ObservableCollection<Profile> profiles = new ObservableCollection<Profile>();
+        private Profile selectedProfile;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -44,13 +42,13 @@ namespace Yggdrasil_Core.ViewModels
             set { selectedMacro = value; OnPropChanged(nameof(SelectedMacro)); }
         }
 
-        public ObservableCollection<string> ProfileNames
+        public ObservableCollection<Profile> Profiles
         {
-            get => profileNames;
-            set { profileNames = value; OnPropChanged(nameof(ProfileNames)); }
+            get => profiles;
+            set { profiles = value; OnPropChanged(nameof(Profiles)); }
         }
 
-        public string SelectedProfile
+        public Profile SelectedProfile
         {
             get => selectedProfile;
             set { selectedProfile = value; OnPropChanged(nameof(SelectedProfile)); }
@@ -65,6 +63,7 @@ namespace Yggdrasil_Core.ViewModels
         public ICommand SaveProfileCommand { get; }
         public ICommand DeleteProfileCommand { get; }
         public ICommand ImportProfileCommand { get; }
+        public ICommand OpenScriptPadCommand { get; }
 
         public MacroPadVM()
         {
@@ -72,18 +71,22 @@ namespace Yggdrasil_Core.ViewModels
             general.Macros.Add(new Macro { Name = "Macro1" });
             general.Macros.Add(new Macro { Name = "Macro2" });
             Folders.Add(general);
-            ProfileNames.Add("Default");
-            ProfileNames.Add("Profile1");
+
+            var defaultProfile = new Profile { Name = "Default", IsDefault = true };
+            defaultProfile.Folders = Folders;
+            Profiles.Add(defaultProfile);
+            SelectedProfile = defaultProfile;
 
             CreateFolderCommand = new RelayCmd(_ => CreateFolder());
             CreateMacroCommand = new RelayCmd(_ => CreateMacro());
             EditMacroCommand = new RelayCmd(_ => EditMacro(), _ => SelectedMacro != null);
             DeleteCommand = new RelayCmd(_ => DeleteSelected(), _ => CanDelete());
             ImportMacroCommand = new RelayCmd(_ => ImportMacro());
-            LoadProfileCommand = new RelayCmd(_ => LoadProfile(), _ => !string.IsNullOrEmpty(SelectedProfile));
-            SaveProfileCommand = new RelayCmd(_ => SaveProfile(), _ => !string.IsNullOrEmpty(SelectedProfile));
-            DeleteProfileCommand = new RelayCmd(_ => DeleteProfile(), _ => !string.IsNullOrEmpty(SelectedProfile));
+            LoadProfileCommand = new RelayCmd(_ => LoadProfile(), _ => SelectedProfile != null);
+            SaveProfileCommand = new RelayCmd(_ => SaveProfile(), _ => SelectedProfile != null);
+            DeleteProfileCommand = new RelayCmd(_ => DeleteProfile(), _ => SelectedProfile != null && !SelectedProfile.IsDefault);
             ImportProfileCommand = new RelayCmd(_ => ImportProfile());
+            OpenScriptPadCommand = new RelayCmd(_ => OpenScriptPad());
         }
 
         private void UpdateSelected()
@@ -94,60 +97,28 @@ namespace Yggdrasil_Core.ViewModels
 
         private void CreateFolder()
         {
-            string name;
-            do
-            {
-                name = InputDialog.Show("New Folder", "Enter folder name:");
-                if (name == null) return;
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    MessageBox.Show("Name cannot be empty.");
-                    continue;
-                }
-                if (Folders.Any(f => f.Name == name))
-                {
-                    MessageBox.Show("Folder name already exists.");
-                    continue;
-                }
-                break;
-            } while (true);
-
-            var newFolder = new MacroFolder { Name = name };
+            var newFolder = new MacroFolder { Name = "New Folder" };
             Folders.Add(newFolder);
-            Application.Current.Dispatcher.BeginInvoke(new System.Action(() => SelectedTreeItem = newFolder), DispatcherPriority.Render);
-            Logger.Info($"New folder created: {name}");
+            SelectedTreeItem = newFolder;
+            Logger.Info("New folder created.");
         }
 
         private void CreateMacro()
         {
-            string name;
             var targetFolder = GetCurrentFolder();
-            do
-            {
-                name = InputDialog.Show("New Macro", "Enter macro name:");
-                if (name == null) return;
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    MessageBox.Show("Name cannot be empty.");
-                    continue;
-                }
-                if (targetFolder.Macros.Any(m => m.Name == name))
-                {
-                    MessageBox.Show("Macro name already exists in this folder.");
-                    continue;
-                }
-                break;
-            } while (true);
-
-            var newMacro = new Macro { Name = name };
+            var newMacro = new Macro { Name = "New Macro" };
             targetFolder.Macros.Add(newMacro);
-            Application.Current.Dispatcher.BeginInvoke(new System.Action(() => SelectedTreeItem = newMacro), DispatcherPriority.Render);
-            Logger.Info($"New macro created: {name}");
+            SelectedTreeItem = newMacro;
+            Logger.Info("New macro created.");
         }
 
         private void EditMacro()
         {
-            Logger.Info($"Opening ScriptEditor for macro: {SelectedMacro.Name}");
+            if (SelectedMacro != null)
+            {
+                var scriptPad = new Forms.ScriptPad(SelectedMacro, Folders, Profiles);
+                scriptPad.ShowDialog();
+            }
         }
 
         private bool CanDelete()
@@ -161,32 +132,19 @@ namespace Yggdrasil_Core.ViewModels
         {
             if (SelectedMacro != null)
             {
-                var result = MessageBox.Show($"Are you sure you want to delete the macro '{SelectedMacro.Name}'?", "Confirm Delete", MessageBoxButton.YesNo);
-                if (result == MessageBoxResult.Yes)
+                var folder = GetCurrentFolder();
+                if (folder != null)
                 {
-                    var folder = Folders.FirstOrDefault(f => f.Macros.Contains(SelectedMacro));
-                    if (folder != null)
-                    {
-                        folder.Macros.Remove(SelectedMacro);
-                        Logger.Info("Macro deleted.");
-                    }
-                    SelectedTreeItem = null;
+                    folder.Macros.Remove(SelectedMacro);
+                    Logger.Info("Macro deleted.");
                 }
+                SelectedTreeItem = null;
             }
             else if (SelectedFolder != null && SelectedFolder.Name != "General")
             {
-                bool isEmpty = SelectedFolder.Macros.Count == 0;
-                MessageBoxResult result = MessageBoxResult.No;
-                if (!isEmpty)
-                {
-                    result = MessageBox.Show($"Are you sure you want to delete the folder '{SelectedFolder.Name}' and all its macros?", "Confirm Delete", MessageBoxButton.YesNo);
-                }
-                if (isEmpty || result == MessageBoxResult.Yes)
-                {
-                    Folders.Remove(SelectedFolder);
-                    SelectedTreeItem = null;
-                    Logger.Info("Folder deleted.");
-                }
+                Folders.Remove(SelectedFolder);
+                SelectedTreeItem = null;
+                Logger.Info("Folder deleted.");
             }
         }
 
@@ -198,27 +156,27 @@ namespace Yggdrasil_Core.ViewModels
 
         private void LoadProfile()
         {
-            Folders.Clear();
-            var general = new MacroFolder { Name = "General" };
-            general.Macros.Add(new Macro { Name = $"Loaded Macro from {SelectedProfile}" });
-            Folders.Add(general);
-            Logger.Info($"Profile loaded: {SelectedProfile}");
+            if (SelectedProfile != null)
+            {
+                Folders = new ObservableCollection<MacroFolder>(SelectedProfile.Folders);
+                Logger.Info($"Profile loaded: {SelectedProfile.Name}");
+            }
         }
 
         private void SaveProfile()
         {
-            if (!ProfileNames.Contains(SelectedProfile))
+            if (SelectedProfile != null)
             {
-                ProfileNames.Add(SelectedProfile);
+                SelectedProfile.Folders = new ObservableCollection<MacroFolder>(Folders);
+                Logger.Info($"Profile saved: {SelectedProfile.Name}");
             }
-            Logger.Info($"Profile saved: {SelectedProfile}");
         }
 
         private void DeleteProfile()
         {
-            if (ProfileNames.Contains(SelectedProfile))
+            if (SelectedProfile != null && !SelectedProfile.IsDefault)
             {
-                ProfileNames.Remove(SelectedProfile);
+                Profiles.Remove(SelectedProfile);
                 Logger.Info("Profile deleted.");
             }
         }
@@ -226,6 +184,12 @@ namespace Yggdrasil_Core.ViewModels
         private void ImportProfile()
         {
             Logger.Info("Import profile (placeholder).");
+        }
+
+        private void OpenScriptPad()
+        {
+            var scriptPad = new Forms.ScriptPad(null, Folders, Profiles);
+            scriptPad.ShowDialog();
         }
 
         private MacroFolder GetCurrentFolder()

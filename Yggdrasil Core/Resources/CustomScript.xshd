@@ -1,0 +1,56 @@
+<!-- Resources/CustomScript.xshd -->
+<SyntaxDefinition name="MacroScript" extensions=".macro;.mscr"
+                  xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+	<!-- Colors -->
+	<Color name="Comment" foreground="#6A9955" />
+	<Color name="String" foreground="#D32F2F" />
+	<Color name="Command" foreground="#1E88E5" />
+	<Color name="Action" foreground="#7B1FA2" />
+	<Color name="Param" foreground="#AFB42B" />
+	<Color name="Unit" foreground="#0097A7" />
+	<Color name="Green" foreground="#00FF00" />
+	<Color name="Red" foreground="#FF0000" />
+	<Color name="Blue" foreground="#0000FF" />
+	<!-- Main ruleset -->
+	<RuleSet ignoreCase="true">
+		<!-- Comments -->
+		<Span color="Comment" begin="//" end="\n" />
+		<Span color="Comment" begin="#" end="\n" />
+		<!-- Strings -->
+		<Span color="String" begin="&quot;" end="&quot;" />
+		<!-- Commands -->
+		<Keywords color="Command">
+			<Word>Keyboard</Word>
+			<Word>Mouse</Word>
+			<Word>HKeyboard</Word>
+			<Word>HMouse</Word>
+			<Word>Wait</Word>
+			<Word>if</Word>
+			<Word>else</Word>
+			<Word>endif</Word>
+			<Word>func</Word>
+			<Word>endfunc</Word>
+			<Word>HP</Word>
+			<Word>SP</Word>
+		</Keywords>
+		<!-- Actions -->
+		<Keywords color="Action">
+			<Word>Press</Word>
+			<Word>Release</Word>
+			<Word>Tap</Word>
+			<Word>Move</Word>
+		</Keywords>
+		<!-- Params -->
+		<Keywords color="Param">
+			<Word>jitter</Word>
+		</Keywords>
+		<!-- Units -->
+		<Keywords color="Unit">
+			<Word>ms</Word>
+			<Word>s</Word>
+		</Keywords>
+		<!-- Rules -->
+		<Rule color="Green">\d+ms</Rule>
+		<Rule color="Red">F[1-9]|A-Z|0-9|Left|Right</Rule>
+	</RuleSet>
+</SyntaxDefinition>

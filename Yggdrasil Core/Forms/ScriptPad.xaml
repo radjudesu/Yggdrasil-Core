@@ -4,9 +4,153 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Yggdrasil_Core.Forms"
+        xmlns:avalon="http://icsharpcode.net/sharpdevelop/avalonedit"
+        xmlns:models="clr-namespace:Yggdrasil_Core.Models"
+        xmlns:utils="clr-namespace:Yggdrasil_Core.Utils"
+        xmlns:vm="clr-namespace:Yggdrasil_Core.ViewModels"
         mc:Ignorable="d"
-        Title="ScriptPad" Height="450" Width="800">
-    <Grid>
-        
+        Title="ScriptPad" Height="635" Width="960">
+    <Window.Resources>
+        <SolidColorBrush x:Key="SecondaryBrush" Color="#202020" />
+        <SolidColorBrush x:Key="BorderBrush" Color="#333333" />
+        <vm:MacroVisibilityConverter x:Key="MacroVisibilityConverter" />
+        <vm:FolderVisibilityConverter x:Key="FolderVisibilityConverter" />
+    </Window.Resources>
+    <Grid Background="#FF0A0A0A">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Border Grid.Column="0" Grid.Row="0" Background="{StaticResource SecondaryBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="5">
+            <avalon:TextEditor x:Name="scriptEditor" Document="{Binding Document}" SyntaxHighlighting="{Binding SyntaxHighlighter}" ShowLineNumbers="True" FontFamily="Consolas" FontSize="12" Foreground="White" Background="Transparent" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <avalon:TextEditor.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Toggle Syntax Highlighting" Command="{Binding ToggleSyntaxCommand}" />
+                        <MenuItem Header="Light/Dark Mode" Command="{Binding ToggleThemeCommand}" />
+                        <Separator />
+                        <MenuItem Header="Insert If/Else/EndIf">
+                            <MenuItem Header="Basic If" Command="{Binding InsertIfCommand}" />
+                            <MenuItem Header="HP Condition" Command="{Binding InsertHPCommand}" />
+                        </MenuItem>
+                        <MenuItem Header="Insert Keyboard Action" Command="{Binding InsertKeyboardCommand}" />
+                        <MenuItem Header="Insert Mouse Action" Command="{Binding InsertMouseCommand}" />
+                        <MenuItem Header="Insert Wait" Command="{Binding InsertWaitCommand}" />
+                        <MenuItem Header="Insert Function" Command="{Binding InsertFuncCommand}" />
+                    </ContextMenu>
+                </avalon:TextEditor.ContextMenu>
+                <avalon:TextEditor.InputBindings>
+                    <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SaveMacroCommand}" />
+                </avalon:TextEditor.InputBindings>
+            </avalon:TextEditor>
+        </Border>
+        <Border Grid.Column="1" Grid.Row="0" Background="{StaticResource SecondaryBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="5">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Text="Macros" FontWeight="Bold" Margin="5" Foreground="White" />
+                <TreeView x:Name="macrosTreeView" Grid.Row="1" ItemsSource="{Binding Folders}" utils:TreeViewExtensions.SelectedItem="{Binding SelectedTreeItem, Mode=TwoWay}" Margin="5" FontSize="10" AllowDrop="True">
+                    <TreeView.ItemContainerStyle>
+                        <Style TargetType="TreeViewItem">
+                            <Setter Property="IsExpanded" Value="True" />
+                            <Setter Property="ContextMenu">
+                                <Setter.Value>
+                                    <ContextMenu>
+                                        <MenuItem Header="Enable/Disable Macro" Command="{Binding PlacementTarget.DataContext.ToggleEnableCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Visibility="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource MacroVisibilityConverter}}" />
+                                        <Separator Visibility="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource MacroVisibilityConverter}}" />
+                                        <MenuItem Header="Create New Folder" Command="{Binding PlacementTarget.DataContext.CreateFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                        <MenuItem Header="Create Macro" Command="{Binding PlacementTarget.DataContext.CreateMacroCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                        <MenuItem Header="Rename" Command="{Binding PlacementTarget.DataContext.RenameCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                        <MenuItem Header="Delete" Command="{Binding PlacementTarget.DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                        <Separator />
+                                        <MenuItem Header="Import Macro" Command="{Binding PlacementTarget.DataContext.ImportMacroCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                        <MenuItem Header="Export Macro" Command="{Binding PlacementTarget.DataContext.ExportMacroCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                        <MenuItem Header="Enable/Disable Folder" Command="{Binding PlacementTarget.DataContext.ToggleFolderEnableCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Visibility="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource FolderVisibilityConverter}}" />
+                                        <Separator Visibility="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource FolderVisibilityConverter}}" />
+                                        <MenuItem Header="Delete Folder" Command="{Binding PlacementTarget.DataContext.DeleteFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Visibility="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource FolderVisibilityConverter}}" />
+                                        <MenuItem Header="Rename Folder" Command="{Binding PlacementTarget.DataContext.RenameFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Visibility="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource FolderVisibilityConverter}}" />
+                                        <Separator Visibility="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource FolderVisibilityConverter}}" />
+                                        <MenuItem Header="Import Folder" Command="{Binding PlacementTarget.DataContext.ImportFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Visibility="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource FolderVisibilityConverter}}" />
+                                        <MenuItem Header="Export Folder" Command="{Binding PlacementTarget.DataContext.ExportFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Visibility="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource FolderVisibilityConverter}}" />
+                                        <Separator Visibility="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource FolderVisibilityConverter}}" />
+                                        <MenuItem Header="Lock/Unlock Folder" Command="{Binding PlacementTarget.DataContext.ToggleLockFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" Visibility="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource FolderVisibilityConverter}}" />
+                                    </ContextMenu>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </TreeView.ItemContainerStyle>
+                    <TreeView.Resources>
+                        <HierarchicalDataTemplate DataType="{x:Type models:MacroFolder}" ItemsSource="{Binding Macros}">
+                            <TextBlock Text="{Binding Name}" Foreground="White" />
+                        </HierarchicalDataTemplate>
+                        <DataTemplate DataType="{x:Type models:Macro}">
+                            <TextBlock Text="{Binding Name}" Foreground="White" />
+                        </DataTemplate>
+                    </TreeView.Resources>
+                </TreeView>
+            </Grid>
+        </Border>
+        <Border Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" Background="{StaticResource SecondaryBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="5">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <GroupBox Grid.Column="0" Header="Specifications" Margin="5" Foreground="White">
+                    <StackPanel>
+                        <TextBlock Text="Name:" Foreground="White" />
+                        <TextBox Text="{Binding CurrentMacro.Name}" />
+                        <TextBlock Text="Folder:" Foreground="White" />
+                        <ComboBox ItemsSource="{Binding FolderNames}" SelectedItem="{Binding SelectedFolderName}" />
+                    </StackPanel>
+                </GroupBox>
+                <GroupBox Grid.Column="1" Header="Repeat Settings" Margin="5" Foreground="White">
+                    <StackPanel>
+                        <RadioButton Content="Toggle" IsChecked="{Binding IsToggle}" GroupName="RepeatMode" />
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Content="Repeatedly" IsChecked="{Binding IsRepeatedly}" GroupName="RepeatMode" />
+                            <TextBox Text="{Binding RepeatCount}" Width="50" IsEnabled="{Binding IsRepeatedly}" />
+                        </StackPanel>
+                        <RadioButton Content="Hold" IsChecked="{Binding IsHold}" GroupName="RepeatMode" />
+                        <RadioButton Content="Auto-Mode" IsChecked="{Binding IsAuto}" GroupName="RepeatMode" />
+                    </StackPanel>
+                </GroupBox>
+                <GroupBox Grid.Column="2" Header="Triggers" Margin="5" Foreground="White">
+                    <StackPanel>
+                        <TextBlock Text="Start Key:" Foreground="White" />
+                        <TextBox x:Name="startKeyTextBox" Text="{Binding StartKey}" IsReadOnly="True" IsEnabled="{Binding CanSetKeys}" PreviewKeyDown="StartKeyTextBox_PreviewKeyDown" />
+                        <TextBlock Text="Stop Key:" Foreground="White" />
+                        <TextBox x:Name="stopKeyTextBox" Text="{Binding StopKey}" IsReadOnly="True" IsEnabled="{Binding CanSetStopKey}" PreviewKeyDown="StopKeyTextBox_PreviewKeyDown" />
+                    </StackPanel>
+                </GroupBox>
+                <Button Grid.Column="3" Content="Save Macro" Command="{Binding SaveMacroCommand}" Margin="5" VerticalAlignment="Bottom" />
+                <GroupBox Grid.Column="4" Header="Profiles" Margin="5" Foreground="White">
+                    <ListView ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Profile" DisplayMemberBinding="{Binding Name}" />
+                            </GridView>
+                        </ListView.View>
+                        <ListView.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Set Active" Command="{Binding SetActiveProfileCommand}" />
+                                <MenuItem Header="Delete" Command="{Binding DeleteProfileCommand}" />
+                                <MenuItem Header="Rename" Command="{Binding RenameProfileCommand}" />
+                                <MenuItem Header="Import" Command="{Binding ImportProfileCommand}" />
+                                <MenuItem Header="Export" Command="{Binding ExportProfileCommand}" />
+                            </ContextMenu>
+                        </ListView.ContextMenu>
+                    </ListView>
+                </GroupBox>
+            </Grid>
+        </Border>
     </Grid>
 </Window>
