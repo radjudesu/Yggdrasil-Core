@@ -161,19 +161,32 @@ namespace Yggdrasil_Core.ViewModels
         {
             if (SelectedMacro != null)
             {
-                var folder = Folders.FirstOrDefault(f => f.Macros.Contains(SelectedMacro));
-                if (folder != null)
+                var result = MessageBox.Show($"Are you sure you want to delete the macro '{SelectedMacro.Name}'?", "Confirm Delete", MessageBoxButton.YesNo);
+                if (result == MessageBoxResult.Yes)
                 {
-                    folder.Macros.Remove(SelectedMacro);
-                    Logger.Info("Macro deleted.");
+                    var folder = Folders.FirstOrDefault(f => f.Macros.Contains(SelectedMacro));
+                    if (folder != null)
+                    {
+                        folder.Macros.Remove(SelectedMacro);
+                        Logger.Info("Macro deleted.");
+                    }
+                    SelectedTreeItem = null;
                 }
-                SelectedTreeItem = null;
             }
             else if (SelectedFolder != null && SelectedFolder.Name != "General")
             {
-                Folders.Remove(SelectedFolder);
-                SelectedTreeItem = null;
-                Logger.Info("Folder deleted.");
+                bool isEmpty = SelectedFolder.Macros.Count == 0;
+                MessageBoxResult result = MessageBoxResult.No;
+                if (!isEmpty)
+                {
+                    result = MessageBox.Show($"Are you sure you want to delete the folder '{SelectedFolder.Name}' and all its macros?", "Confirm Delete", MessageBoxButton.YesNo);
+                }
+                if (isEmpty || result == MessageBoxResult.Yes)
+                {
+                    Folders.Remove(SelectedFolder);
+                    SelectedTreeItem = null;
+                    Logger.Info("Folder deleted.");
+                }
             }
         }
 

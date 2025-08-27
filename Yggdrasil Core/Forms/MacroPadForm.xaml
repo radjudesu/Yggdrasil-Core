@@ -8,17 +8,17 @@
              xmlns:models="clr-namespace:Yggdrasil_Core.Models"
              xmlns:utils="clr-namespace:Yggdrasil_Core.Utils"
              mc:Ignorable="d"
-             d:DesignHeight="450" d:DesignWidth="800" Foreground="{x:Null}" Background="#FF0A0A0A">
+             d:DesignHeight="450" d:DesignWidth="545" Foreground="{x:Null}" Background="#FF0A0A0A">
     <UserControl.Resources>
         <SolidColorBrush x:Key="SecondaryBrush" Color="#202020" />
         <SolidColorBrush x:Key="BorderBrush" Color="#333333" />
     </UserControl.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="67*" />
+            <ColumnDefinition Width="42*" />
         </Grid.ColumnDefinitions>
-        <Border Grid.Column="0" Background="{StaticResource SecondaryBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="0,0,5,0">
+        <Border Grid.Column="0" Background="{StaticResource SecondaryBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="0,0,4,140">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -47,7 +47,7 @@
                 </StackPanel>
             </Grid>
         </Border>
-        <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="5,0,0,320">
+        <Border Grid.Column="1" Background="{StaticResource SecondaryBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Margin="5,0,0,140">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
