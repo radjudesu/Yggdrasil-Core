@@ -11,6 +11,31 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Resources\Icons\add-button %281%29.png" />
+    <None Remove="Resources\Icons\add-button.png" />
+    <None Remove="Resources\Icons\box.png" />
+    <None Remove="Resources\Icons\cancel.png" />
+    <None Remove="Resources\Icons\checklist.png" />
+    <None Remove="Resources\Icons\delete.png" />
+    <None Remove="Resources\Icons\discord-icon.png" />
+    <None Remove="Resources\Icons\download.png" />
+    <None Remove="Resources\Icons\export.png" />
+    <None Remove="Resources\Icons\facebook-ic2on.png" />
+    <None Remove="Resources\Icons\facebook-icon.png" />
+    <None Remove="Resources\Icons\home %281%29.png" />
+    <None Remove="Resources\Icons\home.png" />
+    <None Remove="Resources\Icons\import.png" />
+    <None Remove="Resources\Icons\mail-icon.png" />
+    <None Remove="Resources\Icons\new-folder.png" />
+    <None Remove="Resources\Icons\note.png" />
+    <None Remove="Resources\Icons\pencil.png" />
+    <None Remove="Resources\Icons\security.png" />
+    <None Remove="Resources\Icons\setting.png" />
+    <None Remove="Resources\Icons\upload.png" />
+    <None Remove="Resources\Icons\website.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
     <PackageReference Include="HandyControls" Version="3.6.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
@@ -21,6 +46,31 @@
 
   <ItemGroup>
     <Folder Include="Properties\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\Icons\add-button (1).png" />
+    <Resource Include="Resources\Icons\add-button.png" />
+    <Resource Include="Resources\Icons\box.png" />
+    <Resource Include="Resources\Icons\cancel.png" />
+    <Resource Include="Resources\Icons\checklist.png" />
+    <Resource Include="Resources\Icons\delete.png" />
+    <Resource Include="Resources\Icons\discord-icon.png" />
+    <Resource Include="Resources\Icons\download.png" />
+    <Resource Include="Resources\Icons\export.png" />
+    <Resource Include="Resources\Icons\facebook-ic2on.png" />
+    <Resource Include="Resources\Icons\facebook-icon.png" />
+    <Resource Include="Resources\Icons\home (1).png" />
+    <Resource Include="Resources\Icons\home.png" />
+    <Resource Include="Resources\Icons\import.png" />
+    <Resource Include="Resources\Icons\mail-icon.png" />
+    <Resource Include="Resources\Icons\new-folder.png" />
+    <Resource Include="Resources\Icons\note.png" />
+    <Resource Include="Resources\Icons\pencil.png" />
+    <Resource Include="Resources\Icons\security.png" />
+    <Resource Include="Resources\Icons\setting.png" />
+    <Resource Include="Resources\Icons\upload.png" />
+    <Resource Include="Resources\Icons\website.png" />
   </ItemGroup>
 
 </Project>

@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:hc="https://handyorg.github.io/handycontrol"
              xmlns:vm="clr-namespace:Yggdrasil_Core.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="530" Background="#0A0A0A" Height="430">
+             mc:Ignorable="d" d:DesignWidth="530" Background="#0A0A0A" Height="454">
     <UserControl.DataContext>
         <vm:OdinsEyeVM />
     </UserControl.DataContext>
