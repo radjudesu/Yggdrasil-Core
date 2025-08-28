@@ -1,5 +1,4 @@
-﻿// ViewModels/ScriptPadVM.cs (replace the entire file with this)
-using ICSharpCode.AvalonEdit;
+﻿using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.CodeCompletion;
 using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Editing;
@@ -235,8 +234,8 @@ namespace Yggdrasil_Core.ViewModels
             this.profiles = profiles;
             CurrentMacro = macro ?? new Macro { Name = "New Macro" };
             LoadSyntaxHighlighter();
-            editor.TextArea.TextEntered += TextArea_TextEntered;
-            editor.TextArea.PreviewKeyDown += TextArea_PreviewKeyDown;
+            editor.TextArea.TextEntered += TextEntered;
+            editor.TextArea.PreviewKeyDown += PreviewKeyDown;
 
             InitializeCommands();
         }
@@ -282,27 +281,88 @@ namespace Yggdrasil_Core.ViewModels
             }
         }
 
-        private void TextArea_TextEntered(object sender, TextCompositionEventArgs e)
+        private void TextEntered(object sender, TextCompositionEventArgs e)
         {
-            if (CaretInComment()) return;
+            if (completionWindow != null) return;
+
+            if (char.IsLetterOrDigit(e.Text[0]) || char.IsPunctuation(e.Text[0]))
+            {
+                int caret = editor.CaretOffset;
+                int wordStart = caret;
+                while (wordStart > 0 && !char.IsWhiteSpace(editor.Document.GetCharAt(wordStart - 1)))
+                {
+                    wordStart--;
+                }
+                string currentWord = editor.Document.GetText(wordStart, caret - wordStart);
+
+                var suggestions = GetSuggestions(currentWord);
+
+                if (suggestions.Any())
+                {
+                    completionWindow = new CompletionWindow(editor.TextArea);
+                    completionWindow.StartOffset = wordStart;
+                    completionWindow.EndOffset = caret;
+                    foreach (var s in suggestions)
+                    {
+                        completionWindow.CompletionList.CompletionData.Add(new CompletionData(s));
+                    }
+                    completionWindow.Show();
+                    completionWindow.Closed += (s, args) => completionWindow = null;
+                }
+            }
 
             if (e.Text == ".")
             {
-                var (tokenStart, token, qualifier) = GetCompletionContext();
-                var suggestions = BuildCandidates(qualifier, token);
-                ShowCompletionAt(editor.CaretOffset, editor.CaretOffset, suggestions);
-                return;
+                int dotOffset = editor.CaretOffset - 1;
+                int prefixStart = dotOffset;
+                while (prefixStart > 0 && !char.IsWhiteSpace(editor.Document.GetCharAt(prefixStart - 1)))
+                {
+                    prefixStart--;
+                }
+                string prefix = editor.Document.GetText(prefixStart, dotOffset - prefixStart);
+
+                var subSuggestions = GetSubSuggestions(prefix);
+                if (subSuggestions.Any())
+                {
+                    completionWindow = new CompletionWindow(editor.TextArea);
+                    completionWindow.StartOffset = editor.CaretOffset;
+                    completionWindow.EndOffset = editor.CaretOffset;
+                    foreach (var s in subSuggestions)
+                    {
+                        completionWindow.CompletionList.CompletionData.Add(new CompletionData(s));
+                    }
+                    completionWindow.Show();
+                    completionWindow.Closed += (s, args) => completionWindow = null;
+                }
             }
 
-            char ch = e.Text[0];
-            if (!char.IsLetterOrDigit(ch)) return;
+            if (e.Text == " ")
+            {
+                int spaceOffset = editor.CaretOffset - 1;
+                int prevWordStart = spaceOffset;
+                while (prevWordStart > 0 && !char.IsWhiteSpace(editor.Document.GetCharAt(prevWordStart - 1)))
+                {
+                    prevWordStart--;
+                }
+                string prevWord = editor.Document.GetText(prevWordStart, spaceOffset - prevWordStart);
 
-            var (start, token2, qual) = GetCompletionContext();
-            var suggestions2 = BuildCandidates(qual, token2);
-            ShowCompletionAt(start, editor.CaretOffset, suggestions2);
+                var contextSuggestions = GetContextSuggestionsAfterSpace(prevWord);
+                if (contextSuggestions.Any())
+                {
+                    completionWindow = new CompletionWindow(editor.TextArea);
+                    completionWindow.StartOffset = editor.CaretOffset;
+                    completionWindow.EndOffset = editor.CaretOffset;
+                    foreach (var s in contextSuggestions)
+                    {
+                        completionWindow.CompletionList.CompletionData.Add(new CompletionData(s));
+                    }
+                    completionWindow.Show();
+                    completionWindow.Closed += (s, args) => completionWindow = null;
+                }
+            }
         }
 
-        private void TextArea_PreviewKeyDown(object sender, KeyEventArgs e)
+        private void PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
@@ -322,96 +382,57 @@ namespace Yggdrasil_Core.ViewModels
             }
         }
 
-        private static bool IsWordChar(char c)
-            => char.IsLetterOrDigit(c) || c == '_';
-
-        private bool CaretInComment()
+        private List<string> GetSuggestions(string currentWord)
         {
-            var caret = editor.CaretOffset;
-            var line = editor.Document.GetLineByOffset(caret);
-            var text = editor.Document.GetText(line.Offset, line.Length);
-            int i = 0;
-            while (i < text.Length && char.IsWhiteSpace(text[i])) i++;
-            return (i < text.Length && text[i] == '#');
+            var suggestions = new List<string>();
+            var lowerLastWord = currentWord.ToLower();
+            suggestions.AddRange(roots.Where(r => r.ToLower().StartsWith(lowerLastWord)));
+            return suggestions;
         }
 
-        private (int tokenStart, string token, string qualifier) GetCompletionContext()
+        private List<string> GetSubSuggestions(string prefix)
         {
-            int caret = editor.CaretOffset;
-            if (caret < 0) return (caret, "", null);
-
-            int start = caret;
-            while (start > 0 && IsWordChar(editor.Document.GetCharAt(start - 1)))
-                start--;
-
-            string token = editor.Document.GetText(start, caret - start);
-
-            string qualifier = null;
-            int dotPos = start - 1;
-            if (dotPos >= 0 && editor.Document.GetCharAt(dotPos) == '.')
+            var suggestions = new List<string>();
+            var lowerPrefix = prefix.ToLower();
+            if (lowerPrefix == "keyboard")
             {
-                int qStart = dotPos;
-                while (qStart > 0 && IsWordChar(editor.Document.GetCharAt(qStart - 1)))
-                    qStart--;
-                qualifier = editor.Document.GetText(qStart, dotPos - qStart);
+                suggestions.AddRange(keys);
+                suggestions.AddRange(actions);
+            }
+            else if (lowerPrefix == "mouseclick")
+            {
+                suggestions.AddRange(mouseBtns.Select(b => b + " "));
+            }
+            return suggestions;
+        }
+
+        private List<string> GetContextSuggestionsAfterSpace(string prevWord)
+        {
+            var suggestions = new List<string>();
+            var lowerPrev = prevWord.ToLower();
+
+            if (keys.Any(k => lowerPrev == k.ToLower()) && GetLinePrefixLower().Contains("keyboard."))
+            {
+                suggestions.AddRange(actions);
             }
 
-            return (start, token, qualifier);
-        }
-
-        private IEnumerable<string> BuildCandidates(string qualifier, string token)
-        {
-            if (!string.IsNullOrEmpty(qualifier))
+            if (lowerPrev == "if")
             {
-                if (qualifier.Equals("Keyboard", StringComparison.OrdinalIgnoreCase))
-                {
-                    var set = keys.Concat(actions);
-                    return FirstLetterFilter(set, token);
-                }
-                if (qualifier.Equals("MouseClick", StringComparison.OrdinalIgnoreCase))
-                {
-                    var set = mouseBtns.Concat(actions);
-                    return FirstLetterFilter(set, token);
-                }
-                return Array.Empty<string>();
+                suggestions.AddRange(variables);
             }
 
-            var rootsPlus = roots.AsEnumerable();
-            var varsAndOps = variables.Concat(operators);
-
-            var top = rootsPlus.Concat(varsAndOps).Distinct(StringComparer.OrdinalIgnoreCase);
-
-            return FirstLetterFilter(top, token);
-        }
-
-        private IEnumerable<string> FirstLetterFilter(IEnumerable<string> items, string token)
-        {
-            if (string.IsNullOrEmpty(token)) return items;
-            char first = char.ToUpperInvariant(token[0]);
-            return items.Where(s => s.Length > 0 && char.ToUpperInvariant(s[0]) == first);
-        }
-
-        private void ShowCompletionAt(int startOffset, int endOffset, IEnumerable<string> suggestions)
-        {
-            var list = suggestions?.ToList();
-            if (list == null || list.Count == 0) return;
-
-            completionWindow?.Close();
-            completionWindow = new CompletionWindow(editor.TextArea)
+            if (variables.Any(v => lowerPrev == v.ToLower()) && GetLinePrefixLower().Contains("if "))
             {
-                StartOffset = startOffset,
-                EndOffset = endOffset
-            };
+                suggestions.AddRange(operators);
+            }
 
-            var data = completionWindow.CompletionList.CompletionData;
-            foreach (var s in list)
-                data.Add(new CompletionData(s));
+            return suggestions;
+        }
 
-            if (completionWindow.CompletionList.CompletionData.Count > 0)
-                completionWindow.CompletionList.SelectedItem = completionWindow.CompletionList.CompletionData[0];
-
-            completionWindow.Closed += (s, a) => completionWindow = null;
-            completionWindow.Show();
+        private string GetLinePrefixLower()
+        {
+            var line = editor.Document.GetLineByOffset(editor.CaretOffset);
+            return editor.Document.GetText(line.Offset, editor.CaretOffset - line.Offset).ToLower();
         }
 
         private bool IsInComment(string lineText)
