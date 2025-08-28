@@ -1,6 +1,6 @@
-﻿using System;
+﻿// Forms/ScriptPad.xaml.cs (replace the entire file with this)
+using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using ICSharpCode.AvalonEdit;
@@ -18,6 +18,8 @@ namespace Yggdrasil_Core.Forms
             macrosTreeView.PreviewMouseMove += MacrosTreeView_PreviewMouseMove;
             macrosTreeView.DragOver += MacrosTreeView_DragOver;
             macrosTreeView.Drop += MacrosTreeView_Drop;
+            startKeyTextBox.PreviewKeyDown += StartKeyTextBox_PreviewKeyDown;
+            stopKeyTextBox.PreviewKeyDown += StopKeyTextBox_PreviewKeyDown;
         }
 
         private void MacrosTreeView_PreviewMouseMove(object sender, MouseEventArgs e)
@@ -44,15 +46,6 @@ namespace Yggdrasil_Core.Forms
             }
         }
 
-        protected override void OnClosing(CancelEventArgs e)
-        {
-            if (DataContext is ScriptPadVM vm)
-            {
-                vm.AutoSaveIfNeeded();
-            }
-            base.OnClosing(e);
-        }
-
         private void StartKeyTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (DataContext is ScriptPadVM vm)
@@ -69,6 +62,15 @@ namespace Yggdrasil_Core.Forms
                 vm.StopKey = e.Key.ToString();
                 e.Handled = true;
             }
+        }
+
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            if (DataContext is ScriptPadVM vm)
+            {
+                vm.AutoSaveIfNeeded();
+            }
+            base.OnClosing(e);
         }
     }
 }

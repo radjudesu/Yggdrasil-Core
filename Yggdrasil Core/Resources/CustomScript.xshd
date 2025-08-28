@@ -21,24 +21,29 @@
 		<!-- Commands -->
 		<Keywords color="Command">
 			<Word>Keyboard</Word>
-			<Word>Mouse</Word>
-			<Word>HKeyboard</Word>
-			<Word>HMouse</Word>
+			<Word>Keyboard.type</Word>
+			<Word>MouseClick</Word>
+			<Word>MouseMove</Word>
 			<Word>Wait</Word>
+			<Word>Repeat</Word>
+			<Word>EndRepeat</Word>
+			<Word>Label</Word>
+			<Word>Goto</Word>
+			<Word>func</Word>
+			<Word>endfunc</Word>
 			<Word>if</Word>
 			<Word>else</Word>
 			<Word>endif</Word>
-			<Word>func</Word>
-			<Word>endfunc</Word>
+			<Word>HKeyboard</Word>
+			<Word>HMouse</Word>
 			<Word>HP</Word>
 			<Word>SP</Word>
 		</Keywords>
 		<!-- Actions -->
 		<Keywords color="Action">
-			<Word>Press</Word>
-			<Word>Release</Word>
-			<Word>Tap</Word>
-			<Word>Move</Word>
+			<Word>press</Word>
+			<Word>release</Word>
+			<Word>tap</Word>
 		</Keywords>
 		<!-- Params -->
 		<Keywords color="Param">

@@ -1,4 +1,5 @@
-﻿using ICSharpCode.AvalonEdit;
+﻿// ViewModels/ScriptPadVM.cs (replace the entire file with this)
+using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.CodeCompletion;
 using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Editing;
@@ -11,6 +12,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -22,7 +24,7 @@ using Yggdrasil_Core.Utils;
 
 namespace Yggdrasil_Core.ViewModels
 {
-    public class ScriptPadVM : INotifyPropertyChanged
+    public partial class ScriptPadVM : INotifyPropertyChanged
     {
         private TextEditor editor;
         private Macro currentMacro;
@@ -45,16 +47,19 @@ namespace Yggdrasil_Core.ViewModels
         private string startKey;
         private string stopKey;
         private CompletionWindow completionWindow;
-        private readonly string[] roots = { "Keyboard.", "Keyboard.type", "Mouse.", "Wait", "func", "endfunc", "if", "else", "endif" };
+        private List<string> variables = new List<string>(); // Dynamic variables
+
+        private readonly string[] roots = { "Keyboard.", "Keyboard.type", "MouseClick.", "MouseMove", "Wait", "Repeat", "EndRepeat", "Label", "Goto", "If", "EndIf", "func", "endfunc" };
         private readonly string[] actions = { "press", "release", "tap" };
         private readonly string[] mouseBtns = { "Left", "Right", "Middle" };
         private readonly string[] keys =
         {
             "A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z",
             "0","1","2","3","4","5","6","7","8","9",
-            "F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12",
+            "F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","F13","F14","F15","F16","F17","F18","F19","F20","F21","F22","F23","F24",
             "ESC","TAB","ENTER","SPACE","LEFT","RIGHT","UP","DOWN","SHIFT","CTRL","ALT","WIN"
         };
+        private readonly string[] operators = { "==", "!=", ">", "<", ">=", "<=" };
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -223,36 +228,6 @@ namespace Yggdrasil_Core.ViewModels
 
         public bool CanSetStopKey => !IsAuto && !IsHold;
 
-        public ICommand SaveMacroCommand { get; }
-        public ICommand ToggleSyntaxCommand { get; }
-        public ICommand ToggleThemeCommand { get; }
-        public ICommand InsertIfCommand { get; }
-        public ICommand InsertHPCommand { get; }
-        public ICommand InsertKeyboardCommand { get; }
-        public ICommand InsertMouseCommand { get; }
-        public ICommand InsertWaitCommand { get; }
-        public ICommand InsertFuncCommand { get; }
-        public ICommand CreateFolderCommand { get; }
-        public ICommand CreateMacroCommand { get; }
-        public ICommand RenameCommand { get; }
-        public ICommand DeleteCommand { get; }
-        public ICommand ImportMacroCommand { get; }
-        public ICommand ExportMacroCommand { get; }
-        public ICommand ToggleEnableCommand { get; }
-        public ICommand ToggleFolderEnableCommand { get; }
-        public ICommand DeleteFolderCommand { get; }
-        public ICommand RenameFolderCommand { get; }
-        public ICommand ImportFolderCommand { get; }
-        public ICommand ExportFolderCommand { get; }
-        public ICommand ToggleLockFolderCommand { get; }
-        public ICommand SetActiveProfileCommand { get; }
-        public ICommand DeleteProfileCommand { get; }
-        public ICommand RenameProfileCommand { get; }
-        public ICommand ImportProfileCommand { get; }
-        public ICommand ExportProfileCommand { get; }
-        public ICommand SetStartKey { get; }
-        public ICommand SetStopKey { get; }
-
         public ScriptPadVM(Macro macro, ObservableCollection<MacroFolder> folders, ObservableCollection<Profile> profiles, TextEditor editor)
         {
             this.editor = editor;
@@ -260,38 +235,10 @@ namespace Yggdrasil_Core.ViewModels
             this.profiles = profiles;
             CurrentMacro = macro ?? new Macro { Name = "New Macro" };
             LoadSyntaxHighlighter();
-            editor.TextArea.TextEntering += TextEntering;
-            editor.TextArea.TextEntered += TextEntered;
+            editor.TextArea.TextEntered += TextArea_TextEntered;
+            editor.TextArea.PreviewKeyDown += TextArea_PreviewKeyDown;
 
-            SaveMacroCommand = new RelayCmd(_ => SaveMacro());
-            ToggleSyntaxCommand = new RelayCmd(_ => ToggleSyntax());
-            ToggleThemeCommand = new RelayCmd(_ => ToggleTheme());
-            InsertIfCommand = new RelayCmd(_ => InsertText("if ()\n{\n}\nelse\n{\n}\nendif"));
-            InsertHPCommand = new RelayCmd(_ => InsertText("if (HP) == 50%\n{\n    Keyboard.F1 Tap\n}\nendif"));
-            InsertKeyboardCommand = new RelayCmd(_ => InsertText("Keyboard.F1 Tap"));
-            InsertMouseCommand = new RelayCmd(_ => InsertText("Mouse.Left Tap"));
-            InsertWaitCommand = new RelayCmd(_ => InsertText("Wait(1000ms)"));
-            InsertFuncCommand = new RelayCmd(_ => InsertText("func example()\n{\n}\nendfunc"));
-            CreateFolderCommand = new RelayCmd(_ => CreateFolder());
-            CreateMacroCommand = new RelayCmd(_ => CreateMacro());
-            RenameCommand = new RelayCmd(p => RenameSelected(p));
-            DeleteCommand = new RelayCmd(p => DeleteSelected(p));
-            ImportMacroCommand = new RelayCmd(_ => ImportMacro());
-            ExportMacroCommand = new RelayCmd(p => ExportMacro(p));
-            ToggleEnableCommand = new RelayCmd(p => ToggleEnable(p));
-            ToggleFolderEnableCommand = new RelayCmd(p => ToggleEnable(p));
-            DeleteFolderCommand = new RelayCmd(p => DeleteSelected(p));
-            RenameFolderCommand = new RelayCmd(p => RenameSelected(p));
-            ImportFolderCommand = new RelayCmd(_ => ImportFolder());
-            ExportFolderCommand = new RelayCmd(p => ExportFolder(p));
-            ToggleLockFolderCommand = new RelayCmd(p => ToggleLock(p as MacroFolder));
-            SetActiveProfileCommand = new RelayCmd(_ => SetActive(SelectedProfile));
-            DeleteProfileCommand = new RelayCmd(_ => DeleteProfile(SelectedProfile));
-            RenameProfileCommand = new RelayCmd(_ => RenameProfile(SelectedProfile));
-            ImportProfileCommand = new RelayCmd(_ => ImportProfile());
-            ExportProfileCommand = new RelayCmd(_ => ExportProfile(SelectedProfile));
-            SetStartKey = new RelayCmd(e => { if (e is KeyEventArgs ke) { StartKey = ke.Key.ToString(); ke.Handled = true; } });
-            SetStopKey = new RelayCmd(e => { if (e is KeyEventArgs ke) { StopKey = ke.Key.ToString(); ke.Handled = true; } });
+            InitializeCommands();
         }
 
         protected void OnPropChanged(string name)
@@ -323,8 +270,6 @@ namespace Yggdrasil_Core.ViewModels
         {
         }
 
-        // In ScriptPadVM.cs, replace LoadSyntaxHighlighter()
-        // In ScriptPadVM.cs, replace LoadSyntaxHighlighter()
         private void LoadSyntaxHighlighter()
         {
             var assembly = Assembly.GetExecutingAssembly();
@@ -336,98 +281,172 @@ namespace Yggdrasil_Core.ViewModels
                 }
             }
         }
-        // In ScriptPadVM.cs, update the TextEntering method to set offsets after creating CompletionWindow
-        private void TextEntering(object sender, TextCompositionEventArgs e)
+
+        private void TextArea_TextEntered(object sender, TextCompositionEventArgs e)
         {
-            if (completionWindow != null) return;
-
-            var text = editor.TextArea.Document.GetText(0, editor.CaretOffset);
-            var suggestions = GetSuggestions(text);
-
-            if (suggestions.Any())
-            {
-                var wordStartOffset = editor.CaretOffset - e.Text.Length;
-                completionWindow = new CompletionWindow(editor.TextArea);
-                completionWindow.StartOffset = wordStartOffset;
-                completionWindow.EndOffset = editor.CaretOffset;
-                foreach (var s in suggestions)
-                {
-                    completionWindow.CompletionList.CompletionData.Add(new CompletionData(s));
-                }
-                completionWindow.Show();
-                completionWindow.Closed += (s, args) => completionWindow = null;
-            }
-        }
-
-        private void TextEntered(object sender, TextCompositionEventArgs e)
-        {
-            if (completionWindow != null) return;
-
-            var text = editor.TextArea.Document.GetText(0, editor.CaretOffset);
-            var suggestions = GetSuggestions(text);
-
-            if (suggestions.Any())
-            {
-                var wordStartOffset = editor.CaretOffset - e.Text.Length;
-                completionWindow = new CompletionWindow(editor.TextArea);
-                completionWindow.StartOffset = wordStartOffset;
-                completionWindow.EndOffset = editor.CaretOffset;
-
-                foreach (var s in suggestions)
-                {
-                    completionWindow.CompletionList.CompletionData.Add(new CompletionData(s));
-                }
-                completionWindow.Show();
-                completionWindow.Closed += (s, args) => completionWindow = null;
-            }
+            if (CaretInComment()) return;
 
             if (e.Text == ".")
             {
-                var textBefore = editor.TextArea.Document.GetText(0, editor.CaretOffset - 1);
-                var lastWord = textBefore.Split(new[] { ' ', '\n' }).Last();
-                var subSuggestions = GetSubSuggestions(lastWord);
+                var (tokenStart, token, qualifier) = GetCompletionContext();
+                var suggestions = BuildCandidates(qualifier, token);
+                ShowCompletionAt(editor.CaretOffset, editor.CaretOffset, suggestions);
+                return;
+            }
 
-                if (subSuggestions.Any())
+            char ch = e.Text[0];
+            if (!char.IsLetterOrDigit(ch)) return;
+
+            var (start, token2, qual) = GetCompletionContext();
+            var suggestions2 = BuildCandidates(qual, token2);
+            ShowCompletionAt(start, editor.CaretOffset, suggestions2);
+        }
+
+        private void TextArea_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                var line = editor.Document.GetLineByOffset(editor.CaretOffset);
+                var text = editor.Document.GetText(line);
+                if (!IsInComment(text))
                 {
-                    completionWindow = new CompletionWindow(editor.TextArea);
-                    foreach (var s in subSuggestions)
-                    {
-                        completionWindow.CompletionList.CompletionData.Add(new CompletionData(s));
-                    }
-                    completionWindow.Show();
-                    completionWindow.Closed += (s, args) => completionWindow = null;
+                    var fixedLine = AutoFixLine(text);
+                    editor.Document.Replace(line, fixedLine);
                 }
             }
+
+            if (e.Key == Key.Tab && completionWindow != null)
+            {
+                e.Handled = true;
+                completionWindow.CompletionList.RequestInsertion(e);
+            }
         }
 
+        private static bool IsWordChar(char c)
+            => char.IsLetterOrDigit(c) || c == '_';
 
-        private List<string> GetSuggestions(string text)
+        private bool CaretInComment()
         {
-            var suggestions = new List<string>();
-            var lastChar = text.LastOrDefault();
-            if (char.IsLetter(lastChar))
-            {
-                if (lastChar == 'K') suggestions.Add("Keyboard.");
-                if (lastChar == 'M') suggestions.Add("Mouse.");
-                if (lastChar == 'I') suggestions.Add("If");
-                if (lastChar == 'H') suggestions.AddRange(new[] { "HKeyboard.", "HMouse." });
-            }
-            return suggestions;
+            var caret = editor.CaretOffset;
+            var line = editor.Document.GetLineByOffset(caret);
+            var text = editor.Document.GetText(line.Offset, line.Length);
+            int i = 0;
+            while (i < text.Length && char.IsWhiteSpace(text[i])) i++;
+            return (i < text.Length && text[i] == '#');
         }
 
-        private List<string> GetSubSuggestions(string word)
+        private (int tokenStart, string token, string qualifier) GetCompletionContext()
         {
-            var suggestions = new List<string>();
-            if (word.EndsWith("Keyboard") || word.EndsWith("HKeyboard"))
+            int caret = editor.CaretOffset;
+            if (caret < 0) return (caret, "", null);
+
+            int start = caret;
+            while (start > 0 && IsWordChar(editor.Document.GetCharAt(start - 1)))
+                start--;
+
+            string token = editor.Document.GetText(start, caret - start);
+
+            string qualifier = null;
+            int dotPos = start - 1;
+            if (dotPos >= 0 && editor.Document.GetCharAt(dotPos) == '.')
             {
-                suggestions.AddRange(keys);
+                int qStart = dotPos;
+                while (qStart > 0 && IsWordChar(editor.Document.GetCharAt(qStart - 1)))
+                    qStart--;
+                qualifier = editor.Document.GetText(qStart, dotPos - qStart);
             }
-            if (word.EndsWith("Mouse") || word.EndsWith("HMouse"))
+
+            return (start, token, qualifier);
+        }
+
+        private IEnumerable<string> BuildCandidates(string qualifier, string token)
+        {
+            if (!string.IsNullOrEmpty(qualifier))
             {
-                suggestions.AddRange(mouseBtns);
+                if (qualifier.Equals("Keyboard", StringComparison.OrdinalIgnoreCase))
+                {
+                    var set = keys.Concat(actions);
+                    return FirstLetterFilter(set, token);
+                }
+                if (qualifier.Equals("MouseClick", StringComparison.OrdinalIgnoreCase))
+                {
+                    var set = mouseBtns.Concat(actions);
+                    return FirstLetterFilter(set, token);
+                }
+                return Array.Empty<string>();
             }
-            if (word == "If") suggestions.Add(" (condition) { }");
-            return suggestions;
+
+            var rootsPlus = roots.AsEnumerable();
+            var varsAndOps = variables.Concat(operators);
+
+            var top = rootsPlus.Concat(varsAndOps).Distinct(StringComparer.OrdinalIgnoreCase);
+
+            return FirstLetterFilter(top, token);
+        }
+
+        private IEnumerable<string> FirstLetterFilter(IEnumerable<string> items, string token)
+        {
+            if (string.IsNullOrEmpty(token)) return items;
+            char first = char.ToUpperInvariant(token[0]);
+            return items.Where(s => s.Length > 0 && char.ToUpperInvariant(s[0]) == first);
+        }
+
+        private void ShowCompletionAt(int startOffset, int endOffset, IEnumerable<string> suggestions)
+        {
+            var list = suggestions?.ToList();
+            if (list == null || list.Count == 0) return;
+
+            completionWindow?.Close();
+            completionWindow = new CompletionWindow(editor.TextArea)
+            {
+                StartOffset = startOffset,
+                EndOffset = endOffset
+            };
+
+            var data = completionWindow.CompletionList.CompletionData;
+            foreach (var s in list)
+                data.Add(new CompletionData(s));
+
+            if (completionWindow.CompletionList.CompletionData.Count > 0)
+                completionWindow.CompletionList.SelectedItem = completionWindow.CompletionList.CompletionData[0];
+
+            completionWindow.Closed += (s, a) => completionWindow = null;
+            completionWindow.Show();
+        }
+
+        private bool IsInComment(string lineText)
+        {
+            return lineText.TrimStart().StartsWith("#");
+        }
+
+        private string AutoFixLine(string line)
+        {
+            if (IsInComment(line)) return line;
+
+            line = Regex.Replace(line, @"\bKeyboard\s+", "Keyboard.", RegexOptions.IgnoreCase);
+            line = Regex.Replace(line, @"\bMouse\s+Left\b", "MouseClick.Left tap", RegexOptions.IgnoreCase);
+            line = Regex.Replace(line, @"\bMouse\s+Right\b", "MouseClick.Right tap", RegexOptions.IgnoreCase);
+            line = Regex.Replace(line, @"\bMouseClick\.\s*Left\s*click\b", "MouseClick.Left tap", RegexOptions.IgnoreCase);
+            line = Regex.Replace(line, @"\bwait\(", "Wait(", RegexOptions.IgnoreCase);
+
+            return NormalizeCase(line);
+        }
+
+        private string NormalizeCase(string line)
+        {
+            foreach (var root in roots)
+            {
+                line = Regex.Replace(line, $@"\b{Regex.Escape(root.ToLower())}\b", root, RegexOptions.IgnoreCase);
+            }
+            return line;
+        }
+
+        public void RegisterScriptVariable(string name, string address, bool readOnly)
+        {
+            if (!variables.Contains(name))
+            {
+                variables.Add(name);
+            }
         }
 
         private void ToggleSyntax()
