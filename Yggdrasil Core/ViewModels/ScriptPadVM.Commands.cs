@@ -46,7 +46,7 @@ namespace Yggdrasil_Core.ViewModels
             InsertHPCommand = new RelayCmd(_ => InsertText("If HP == 50%\n{\n    Keyboard.F1 tap\n}\nEndIf"));
             InsertKeyboardCommand = new RelayCmd(_ => InsertText("Keyboard.F1 tap"));
             InsertMouseCommand = new RelayCmd(_ => InsertText("MouseClick.Left tap"));
-            InsertWaitCommand = new RelayCmd(_ => InsertText("Wait(1000ms)"));
+            InsertWaitCommand = new RelayCmd(_ => InsertText("Wait(100ms)"));
             InsertFuncCommand = new RelayCmd(_ => InsertText("func example()\n{\n}\nendfunc"));
             CreateFolderCommand = new RelayCmd(_ => CreateFolder());
             CreateMacroCommand = new RelayCmd(_ => CreateMacro());
