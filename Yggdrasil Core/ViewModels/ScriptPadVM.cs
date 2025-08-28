@@ -11,7 +11,6 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -45,9 +44,7 @@ namespace Yggdrasil_Core.ViewModels
         private int repeatCount;
         private string startKey;
         private string stopKey;
-        private CompletionWindow completionWindow;
         private List<string> variables = new List<string>(); // Dynamic variables
-
         private readonly string[] roots = { "Keyboard.", "Keyboard.type", "MouseClick.", "MouseMove", "Wait", "Repeat", "EndRepeat", "Label", "Goto", "If", "EndIf", "func", "endfunc" };
         private readonly string[] actions = { "press", "release", "tap" };
         private readonly string[] mouseBtns = { "Left", "Right", "Middle" };
@@ -59,9 +56,9 @@ namespace Yggdrasil_Core.ViewModels
             "ESC","TAB","ENTER","SPACE","LEFT","RIGHT","UP","DOWN","SHIFT","CTRL","ALT","WIN"
         };
         private readonly string[] operators = { "==", "!=", ">", "<", ">=", "<=" };
+        private AutoCompletionHandler completionHandler;
 
         public event PropertyChangedEventHandler PropertyChanged;
-
         public Macro CurrentMacro
         {
             get => currentMacro;
@@ -72,7 +69,6 @@ namespace Yggdrasil_Core.ViewModels
                 LoadMacro();
             }
         }
-
         public ObservableCollection<MacroFolder> Folders
         {
             get => folders;
@@ -82,7 +78,6 @@ namespace Yggdrasil_Core.ViewModels
                 OnPropChanged(nameof(Folders));
             }
         }
-
         public ObservableCollection<Profile> Profiles
         {
             get => profiles;
@@ -92,7 +87,6 @@ namespace Yggdrasil_Core.ViewModels
                 OnPropChanged(nameof(Profiles));
             }
         }
-
         public object SelectedTreeItem
         {
             get => selectedTreeItem;
@@ -103,7 +97,6 @@ namespace Yggdrasil_Core.ViewModels
                 UpdateSelected();
             }
         }
-
         public Profile SelectedProfile
         {
             get => selectedProfile;
@@ -113,7 +106,6 @@ namespace Yggdrasil_Core.ViewModels
                 OnPropChanged(nameof(SelectedProfile));
             }
         }
-
         public TextDocument Document
         {
             get => document;
@@ -123,7 +115,6 @@ namespace Yggdrasil_Core.ViewModels
                 OnPropChanged(nameof(Document));
             }
         }
-
         public IHighlightingDefinition SyntaxHighlighter
         {
             get => isSyntaxEnabled ? syntaxHighlighter : null;
@@ -133,9 +124,7 @@ namespace Yggdrasil_Core.ViewModels
                 OnPropChanged(nameof(SyntaxHighlighter));
             }
         }
-
         public List<string> FolderNames => Folders.Select(f => f.Name).ToList();
-
         public string SelectedFolderName
         {
             get => selectedFolderName;
@@ -145,7 +134,6 @@ namespace Yggdrasil_Core.ViewModels
                 OnPropChanged(nameof(SelectedFolderName));
             }
         }
-
         public bool IsToggle
         {
             get => isToggle;
@@ -156,7 +144,6 @@ namespace Yggdrasil_Core.ViewModels
                 OnPropChanged(nameof(IsToggle));
             }
         }
-
         public bool IsRepeatedly
         {
             get => isRepeatedly;
@@ -167,7 +154,6 @@ namespace Yggdrasil_Core.ViewModels
                 OnPropChanged(nameof(IsRepeatedly));
             }
         }
-
         public bool IsHold
         {
             get => isHold;
@@ -179,7 +165,6 @@ namespace Yggdrasil_Core.ViewModels
                 OnPropChanged(nameof(CanSetStopKey));
             }
         }
-
         public bool IsAuto
         {
             get => isAuto;
@@ -192,7 +177,6 @@ namespace Yggdrasil_Core.ViewModels
                 OnPropChanged(nameof(CanSetStopKey));
             }
         }
-
         public int RepeatCount
         {
             get => repeatCount;
@@ -202,7 +186,6 @@ namespace Yggdrasil_Core.ViewModels
                 OnPropChanged(nameof(RepeatCount));
             }
         }
-
         public string StartKey
         {
             get => startKey;
@@ -212,7 +195,6 @@ namespace Yggdrasil_Core.ViewModels
                 OnPropChanged(nameof(StartKey));
             }
         }
-
         public string StopKey
         {
             get => stopKey;
@@ -222,11 +204,8 @@ namespace Yggdrasil_Core.ViewModels
                 OnPropChanged(nameof(StopKey));
             }
         }
-
         public bool CanSetKeys => !IsAuto;
-
         public bool CanSetStopKey => !IsAuto && !IsHold;
-
         public ScriptPadVM(Macro macro, ObservableCollection<MacroFolder> folders, ObservableCollection<Profile> profiles, TextEditor editor)
         {
             this.editor = editor;
@@ -234,17 +213,13 @@ namespace Yggdrasil_Core.ViewModels
             this.profiles = profiles;
             CurrentMacro = macro ?? new Macro { Name = "New Macro" };
             LoadSyntaxHighlighter();
-            editor.TextArea.TextEntered += TextEntered;
-            editor.TextArea.PreviewKeyDown += PreviewKeyDown;
-
+            completionHandler = new AutoCompletionHandler(editor, variables, roots, actions, mouseBtns, keys, operators);
             InitializeCommands();
         }
-
         protected void OnPropChanged(string name)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
-
         private void LoadMacro()
         {
             Document.Text = CurrentMacro.Script ?? string.Empty;
@@ -257,18 +232,15 @@ namespace Yggdrasil_Core.ViewModels
             StartKey = CurrentMacro.StartKey;
             StopKey = CurrentMacro.StopKey;
         }
-
         private void UpdateSelected()
         {
             selectedFolder = SelectedTreeItem as MacroFolder;
             selectedMacro = SelectedTreeItem as Macro;
             if (selectedMacro != null) CurrentMacro = selectedMacro;
         }
-
         private void UpdateMode()
         {
         }
-
         private void LoadSyntaxHighlighter()
         {
             var assembly = Assembly.GetExecutingAssembly();
@@ -280,188 +252,6 @@ namespace Yggdrasil_Core.ViewModels
                 }
             }
         }
-
-        private void TextEntered(object sender, TextCompositionEventArgs e)
-        {
-            if (completionWindow != null) return;
-
-            if (char.IsLetterOrDigit(e.Text[0]) || char.IsPunctuation(e.Text[0]))
-            {
-                int caret = editor.CaretOffset;
-                int wordStart = caret;
-                while (wordStart > 0 && !char.IsWhiteSpace(editor.Document.GetCharAt(wordStart - 1)))
-                {
-                    wordStart--;
-                }
-                string currentWord = editor.Document.GetText(wordStart, caret - wordStart);
-
-                var suggestions = GetSuggestions(currentWord);
-
-                if (suggestions.Any())
-                {
-                    completionWindow = new CompletionWindow(editor.TextArea);
-                    completionWindow.StartOffset = wordStart;
-                    completionWindow.EndOffset = caret;
-                    foreach (var s in suggestions)
-                    {
-                        completionWindow.CompletionList.CompletionData.Add(new CompletionData(s));
-                    }
-                    completionWindow.Show();
-                    completionWindow.Closed += (s, args) => completionWindow = null;
-                }
-            }
-
-            if (e.Text == ".")
-            {
-                int dotOffset = editor.CaretOffset - 1;
-                int prefixStart = dotOffset;
-                while (prefixStart > 0 && !char.IsWhiteSpace(editor.Document.GetCharAt(prefixStart - 1)))
-                {
-                    prefixStart--;
-                }
-                string prefix = editor.Document.GetText(prefixStart, dotOffset - prefixStart);
-
-                var subSuggestions = GetSubSuggestions(prefix);
-                if (subSuggestions.Any())
-                {
-                    completionWindow = new CompletionWindow(editor.TextArea);
-                    completionWindow.StartOffset = editor.CaretOffset;
-                    completionWindow.EndOffset = editor.CaretOffset;
-                    foreach (var s in subSuggestions)
-                    {
-                        completionWindow.CompletionList.CompletionData.Add(new CompletionData(s));
-                    }
-                    completionWindow.Show();
-                    completionWindow.Closed += (s, args) => completionWindow = null;
-                }
-            }
-
-            if (e.Text == " ")
-            {
-                int spaceOffset = editor.CaretOffset - 1;
-                int prevWordStart = spaceOffset;
-                while (prevWordStart > 0 && !char.IsWhiteSpace(editor.Document.GetCharAt(prevWordStart - 1)))
-                {
-                    prevWordStart--;
-                }
-                string prevWord = editor.Document.GetText(prevWordStart, spaceOffset - prevWordStart);
-
-                var contextSuggestions = GetContextSuggestionsAfterSpace(prevWord);
-                if (contextSuggestions.Any())
-                {
-                    completionWindow = new CompletionWindow(editor.TextArea);
-                    completionWindow.StartOffset = editor.CaretOffset;
-                    completionWindow.EndOffset = editor.CaretOffset;
-                    foreach (var s in contextSuggestions)
-                    {
-                        completionWindow.CompletionList.CompletionData.Add(new CompletionData(s));
-                    }
-                    completionWindow.Show();
-                    completionWindow.Closed += (s, args) => completionWindow = null;
-                }
-            }
-        }
-
-        private void PreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                var line = editor.Document.GetLineByOffset(editor.CaretOffset);
-                var text = editor.Document.GetText(line);
-                if (!IsInComment(text))
-                {
-                    var fixedLine = AutoFixLine(text);
-                    editor.Document.Replace(line, fixedLine);
-                }
-            }
-
-            if (e.Key == Key.Tab && completionWindow != null)
-            {
-                e.Handled = true;
-                completionWindow.CompletionList.RequestInsertion(e);
-            }
-        }
-
-        private List<string> GetSuggestions(string currentWord)
-        {
-            var suggestions = new List<string>();
-            var lowerLastWord = currentWord.ToLower();
-            suggestions.AddRange(roots.Where(r => r.ToLower().StartsWith(lowerLastWord)));
-            return suggestions;
-        }
-
-        private List<string> GetSubSuggestions(string prefix)
-        {
-            var suggestions = new List<string>();
-            var lowerPrefix = prefix.ToLower();
-            if (lowerPrefix == "keyboard")
-            {
-                suggestions.AddRange(keys);
-                suggestions.AddRange(actions);
-            }
-            else if (lowerPrefix == "mouseclick")
-            {
-                suggestions.AddRange(mouseBtns.Select(b => b + " "));
-            }
-            return suggestions;
-        }
-
-        private List<string> GetContextSuggestionsAfterSpace(string prevWord)
-        {
-            var suggestions = new List<string>();
-            var lowerPrev = prevWord.ToLower();
-
-            if (keys.Any(k => lowerPrev == k.ToLower()) && GetLinePrefixLower().Contains("keyboard."))
-            {
-                suggestions.AddRange(actions);
-            }
-
-            if (lowerPrev == "if")
-            {
-                suggestions.AddRange(variables);
-            }
-
-            if (variables.Any(v => lowerPrev == v.ToLower()) && GetLinePrefixLower().Contains("if "))
-            {
-                suggestions.AddRange(operators);
-            }
-
-            return suggestions;
-        }
-
-        private string GetLinePrefixLower()
-        {
-            var line = editor.Document.GetLineByOffset(editor.CaretOffset);
-            return editor.Document.GetText(line.Offset, editor.CaretOffset - line.Offset).ToLower();
-        }
-
-        private bool IsInComment(string lineText)
-        {
-            return lineText.TrimStart().StartsWith("#");
-        }
-
-        private string AutoFixLine(string line)
-        {
-            if (IsInComment(line)) return line;
-
-            line = Regex.Replace(line, @"\bKeyboard\s+", "Keyboard.", RegexOptions.IgnoreCase);
-            line = Regex.Replace(line, @"\bMouse\s+Left\b", "MouseClick.Left tap", RegexOptions.IgnoreCase);
-            line = Regex.Replace(line, @"\bMouse\s+Right\b", "MouseClick.Right tap", RegexOptions.IgnoreCase);
-            line = Regex.Replace(line, @"\bMouseClick\.\s*Left\s*click\b", "MouseClick.Left tap", RegexOptions.IgnoreCase);
-            line = Regex.Replace(line, @"\bwait\(", "Wait(", RegexOptions.IgnoreCase);
-
-            return NormalizeCase(line);
-        }
-
-        private string NormalizeCase(string line)
-        {
-            foreach (var root in roots)
-            {
-                line = Regex.Replace(line, $@"\b{Regex.Escape(root.ToLower())}\b", root, RegexOptions.IgnoreCase);
-            }
-            return line;
-        }
-
         public void RegisterScriptVariable(string name, string address, bool readOnly)
         {
             if (!variables.Contains(name))
@@ -469,25 +259,21 @@ namespace Yggdrasil_Core.ViewModels
                 variables.Add(name);
             }
         }
-
         private void ToggleSyntax()
         {
             isSyntaxEnabled = !isSyntaxEnabled;
             OnPropChanged(nameof(SyntaxHighlighter));
         }
-
         private void ToggleTheme()
         {
             isDarkMode = !isDarkMode;
             editor.Background = isDarkMode ? Brushes.Black : Brushes.White;
             editor.Foreground = isDarkMode ? Brushes.White : Brushes.Black;
         }
-
         private void InsertText(string text)
         {
             editor.Document.Insert(editor.CaretOffset, text);
         }
-
         private void SaveMacro()
         {
             if (string.IsNullOrEmpty(CurrentMacro.Name))
@@ -495,28 +281,23 @@ namespace Yggdrasil_Core.ViewModels
                 CurrentMacro.Name = InputDialog.Show("Macro Name", "Enter macro name:");
                 if (string.IsNullOrEmpty(CurrentMacro.Name)) return;
             }
-
             var targetFolder = Folders.FirstOrDefault(f => f.Name == SelectedFolderName) ?? Folders.First(f => f.Name == "General");
             if (targetFolder.Macros.Any(m => m.Name == CurrentMacro.Name && m != CurrentMacro))
             {
                 MessageBox.Show("Macro name already exists in this folder.");
                 return;
             }
-
             CurrentMacro.Script = Document.Text;
             CurrentMacro.Mode = IsToggle ? MacroMode.Toggle : IsRepeatedly ? MacroMode.Repeatedly : IsHold ? MacroMode.Hold : MacroMode.Auto;
             CurrentMacro.RepeatCount = RepeatCount;
             CurrentMacro.StartKey = StartKey;
             CurrentMacro.StopKey = StopKey;
-
             if (!targetFolder.Macros.Contains(CurrentMacro))
             {
                 targetFolder.Macros.Add(CurrentMacro);
             }
-
             Logger.Info($"Macro saved: {CurrentMacro.Name}");
         }
-
         public void AutoSaveIfNeeded()
         {
             if (!string.IsNullOrEmpty(Document.Text) && string.IsNullOrEmpty(CurrentMacro.Name))
@@ -525,7 +306,6 @@ namespace Yggdrasil_Core.ViewModels
                 SaveMacro();
             }
         }
-
         private string GetUniqueUnnamedName()
         {
             int i = 1;
@@ -536,7 +316,6 @@ namespace Yggdrasil_Core.ViewModels
                 i++;
             }
         }
-
         private void CreateFolder()
         {
             string name;
@@ -551,7 +330,6 @@ namespace Yggdrasil_Core.ViewModels
             Folders.Add(newFolder);
             SelectedTreeItem = newFolder;
         }
-
         private void CreateMacro()
         {
             string name;
@@ -568,7 +346,6 @@ namespace Yggdrasil_Core.ViewModels
             SelectedTreeItem = newMacro;
             CurrentMacro = newMacro;
         }
-
         private void RenameSelected(object parameter)
         {
             var item = parameter ?? SelectedTreeItem;
@@ -591,7 +368,6 @@ namespace Yggdrasil_Core.ViewModels
                 }
             }
         }
-
         private void DeleteSelected(object parameter)
         {
             var item = parameter ?? SelectedTreeItem;
@@ -613,12 +389,10 @@ namespace Yggdrasil_Core.ViewModels
                 }
             }
         }
-
         private void ImportMacro()
         {
             Logger.Info("Import macro");
         }
-
         private void ExportMacro(object parameter)
         {
             var item = parameter ?? SelectedTreeItem;
@@ -627,19 +401,16 @@ namespace Yggdrasil_Core.ViewModels
                 Logger.Info($"Export macro: {macro.Name}");
             }
         }
-
         private void ToggleEnable(object parameter)
         {
             var item = parameter ?? SelectedTreeItem;
             if (item is Macro m) m.IsEnabled = !m.IsEnabled;
             if (item is MacroFolder f) f.IsEnabled = !f.IsEnabled;
         }
-
         private void ImportFolder()
         {
             Logger.Info("Import folder");
         }
-
         private void ExportFolder(object parameter)
         {
             var item = parameter ?? SelectedTreeItem;
@@ -648,19 +419,16 @@ namespace Yggdrasil_Core.ViewModels
                 Logger.Info($"Export folder: {folder.Name}");
             }
         }
-
         private void ToggleLock(MacroFolder folder)
         {
             if (folder != null) folder.IsLocked = !folder.IsLocked;
         }
-
         private void SetActive(Profile profile)
         {
             if (profile == null) return;
             foreach (var p in Profiles) p.IsActive = false;
             profile.IsActive = true;
         }
-
         private void DeleteProfile(Profile profile)
         {
             if (profile == null || profile.IsDefault) return;
@@ -670,7 +438,6 @@ namespace Yggdrasil_Core.ViewModels
                 Profiles.Remove(profile);
             }
         }
-
         private void RenameProfile(Profile profile)
         {
             if (profile == null || profile.IsDefault) return;
@@ -680,12 +447,10 @@ namespace Yggdrasil_Core.ViewModels
                 profile.Name = newName;
             }
         }
-
         private void ImportProfile()
         {
             Logger.Info("Import profile");
         }
-
         private void ExportProfile(Profile profile)
         {
             if (profile != null)
@@ -693,14 +458,12 @@ namespace Yggdrasil_Core.ViewModels
                 Logger.Info($"Export profile: {profile.Name}");
             }
         }
-
         private MacroFolder GetCurrentFolder()
         {
             if (selectedFolder != null) return selectedFolder;
             if (selectedMacro != null) return Folders.FirstOrDefault(f => f.Macros.Contains(selectedMacro));
             return Folders.FirstOrDefault(f => f.Name == "General");
         }
-
         public void StartDrag(MouseEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed && SelectedTreeItem != null)
@@ -708,12 +471,10 @@ namespace Yggdrasil_Core.ViewModels
                 DragDrop.DoDragDrop(e.Source as DependencyObject, SelectedTreeItem, DragDropEffects.Move);
             }
         }
-
         public void HandleDragOver(DragEventArgs e)
         {
             e.Effects = DragDropEffects.Move;
         }
-
         public void HandleDrop(DragEventArgs e)
         {
             if (e.Data.GetDataPresent(typeof(Macro)) || e.Data.GetDataPresent(typeof(MacroFolder)))
@@ -732,43 +493,20 @@ namespace Yggdrasil_Core.ViewModels
             }
         }
     }
-
-    public class CompletionData : ICompletionData
-    {
-        public string Text { get; }
-        public object Content => Text;
-        public object Description => null;
-        public double Priority => 0;
-        public ImageSource Image => null;
-
-        public CompletionData(string text)
-        {
-            Text = text;
-        }
-
-        public void Complete(TextArea textArea, ISegment completionSegment, EventArgs insertionRequestEventArgs)
-        {
-            textArea.Document.Replace(completionSegment, Text);
-        }
-    }
-
     public class MacroVisibilityConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
             return value is Macro ? Visibility.Visible : Visibility.Collapsed;
         }
-
         public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => DependencyProperty.UnsetValue;
     }
-
     public class FolderVisibilityConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
             return value is MacroFolder ? Visibility.Visible : Visibility.Collapsed;
         }
-
         public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => DependencyProperty.UnsetValue;
     }
 }

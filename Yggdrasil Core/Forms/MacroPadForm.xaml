@@ -32,10 +32,10 @@
                           Margin="5" FontSize="10">
                     <TreeView.Resources>
                         <HierarchicalDataTemplate DataType="{x:Type models:MacroFolder}" ItemsSource="{Binding Macros}">
-                            <TextBlock Text="{Binding Name}" Foreground="White"/>
+                            <TextBlock Text="{Binding Name}" Foreground="Black"/>
                         </HierarchicalDataTemplate>
                         <DataTemplate DataType="{x:Type models:Macro}">
-                            <TextBlock Text="{Binding Name}" Foreground="White"/>
+                            <TextBlock Text="{Binding Name}" Foreground="Black"/>
                         </DataTemplate>
                     </TreeView.Resources>
                 </TreeView>
