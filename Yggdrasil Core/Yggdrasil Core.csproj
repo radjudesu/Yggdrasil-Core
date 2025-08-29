@@ -3,11 +3,11 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <RootNamespace>Yggdrasil_Core</RootNamespace>
+	  <RootNamespace>Yggdrasil_Core</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <AssemblyName>$(MSBuildProjectName)</AssemblyName>
+	  <AssemblyName>Yggdrasil_Core</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
